@@ -79,6 +79,23 @@ namespace {
 	}
 
 
+	Eigen::MatrixXd transformGlobalToLocal(double x, double y, double psi, const vector<double> & ptsx, const vector<double> & ptsy) {
+
+		assert(ptsx.size() == ptsy.size());
+		unsigned len = ptsx.size();
+
+		auto waypoints = Eigen::MatrixXd(2, len);
+
+		for (auto i = 0; i<len; ++i) {
+			waypoints(0, i) = cos(psi) * (ptsx[i] - x) + sin(psi) * (ptsy[i] - y);
+			waypoints(1, i) = -sin(psi) * (ptsx[i] - x) + cos(psi) * (ptsy[i] - y);
+		}
+
+		return waypoints;
+
+	}
+
+
 } //namespace
 
 int main() {
@@ -111,14 +128,21 @@ int main() {
 					// Affine transformation. Translate to car coordinate system then rotate to the car's orientation. 
 					// Local coordinates take capital letters. The reference trajectory in local coordinates:
 					Eigen::MatrixXd waypoints = transformGlobalToLocal(px, py, psi, ptsx, ptsy);
+					
 
-					//1- Set the way points to from global coordinates to local one
 					Eigen::VectorXd waypoints_x = Eigen::VectorXd(ptsx.size());
 					Eigen::VectorXd waypoints_y = Eigen::VectorXd(ptsx.size());
+
+					for (int i = 0; i < ptsx.size(); i++)
+					{
+						waypoints_x[i] = ((ptsx[i] - px)*cos(-psi) - (ptsy[i] - py)*sin(-psi));
+						waypoints_y[i] = ((ptsx[i] - px)*sin(-psi) + (ptsy[i] - py)*cos(-psi));
+					}
 					//Find coefficient, cte, epsi
 					auto coeffs = polyfit(waypoints_x, waypoints_y, 3);
 					double cte = polyeval(coeffs, 0);
 					double epsi = -atan(coeffs[1]);
+
 					Eigen::VectorXd Ptsx = waypoints_x;
 					Eigen::VectorXd Ptsy = waypoints_y;
 					// state in vehicle coordinates: x,y and orientation are always zero
@@ -140,16 +164,6 @@ int main() {
 					msgJson["steering_angle"] = -steer_value / 0.436332;
 					msgJson["throttle"] = throttle_value;
 
-					//.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
-					// the points in the simulator are connected by a Green line
-					cout << " x           " << px << endl;
-					cout << " y           " << py << endl;
-					cout << " psi         " << psi << endl;
-					cout << " v           " << v << endl;
-					cout << " cte         " << cte << endl;
-					cout << " epsi        " << epsi << endl;
-					cout << " steer_value " << steer_value << endl;
-					cout << " throttle    " << throttle_value << endl;
 
 					// Display the MPC predicted trajectory 
 					msgJson["mpc_x"] = sol.X;
