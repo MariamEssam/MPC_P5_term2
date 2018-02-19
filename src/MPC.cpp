@@ -48,6 +48,8 @@ public:
 	// `fg` is a vector containing the cost and constraints.
 	// `vars` is a vector containing the variable values (state & actuators).
 	void operator()(ADvector& fg, const ADvector& vars) {
+		// The cost is stored is the first element of `fg`.
+		// Any additions to the cost should be added to `fg[0]`.
 		fg[0] = 0;
 
 		// The part of the cost based on the reference state.
@@ -61,7 +63,7 @@ public:
 		// Minimize the use of actuators.
 		for (int i = 0; i < N - 1; i++) {
 			fg[0] += CppAD::pow(vars[delta_start + i], 2);
-			fg[0] += CppAD::pow(vars[a_start + i], 2);
+			fg[0] += 10 * CppAD::pow(vars[a_start + i], 2);
 		}
 
 		// Minimize the value gap between sequential actuations.
@@ -70,6 +72,14 @@ public:
 			fg[0] += CppAD::pow(vars[a_start + i + 1] - vars[a_start + i], 2);
 		}
 
+		//
+		// Setup Constraints
+		// Initial constraints
+		//
+		// We add 1 to each of the starting indices due to cost being located at
+		// index 0 of `fg`.
+		// This bumps up the position of all the other values.
+		// 
 
 		fg[1 + x_start] = vars[x_start];
 		fg[1 + y_start] = vars[y_start];
@@ -89,29 +99,36 @@ public:
 			AD<double> epsi1 = vars[epsi_start + i + 1];
 
 			// The state at time t.
-			AD<double> X_0 = vars[x_start + i];
-			AD<double> y_0 = vars[y_start + i];
-			AD<double> psi_0 = vars[psi_start + i];
-			AD<double> v_0 = vars[v_start + i];
-			AD<double> cte_0 = vars[cte_start + i];
-			AD<double> epsi_0 = vars[epsi_start + i];
+			AD<double> x0 = vars[x_start + i];
+			AD<double> y0 = vars[y_start + i];
+			AD<double> psi0 = vars[psi_start + i];
+			AD<double> v0 = vars[v_start + i];
+			AD<double> cte0 = vars[cte_start + i];
+			AD<double> epsi0 = vars[epsi_start + i];
 
 			// Only consider the actuation at time t.
-			AD<double> delta_0 = vars[delta_start + i];
-			AD<double> a_0 = vars[a_start + i];
+			AD<double> delta0 = vars[delta_start + i];
+			AD<double> a0 = vars[a_start + i];
 
-			AD<double> f_0 = coeffs[0] + coeffs[1] * X_0 + coeffs[2] * X_0*X_0 + coeffs[3] * X_0*X_0*X_0;
-			AD<double> psid_0 = CppAD::atan(coeffs[1] + 2 * coeffs[2] * X_0 + 3 * coeffs[3] * X_0*X_0);
+			AD<double> f0 = coeffs[0] + coeffs[1] * x0 + coeffs[2] * x0*x0 + coeffs[3] * x0*x0*x0;
+			AD<double> psides0 = CppAD::atan(coeffs[1] + 2 * coeffs[2] * x0 + 3 * coeffs[3] * x0*x0);
 
 
-			fg[2 + x_start + i] = x1 - (X_0 + v_0 * CppAD::cos(psi_0) * dt);
-			fg[2 + y_start + i] = y1 - (y_0 + v_0 * CppAD::sin(psi_0) * dt);
-			fg[2 + psi_start + i] = psi1 - (psi_0 + v_0 * delta_0 / Lf * dt);
-			fg[2 + v_start + i] = v1 - (v_0 + a_0 * dt);
+			// Recall the equations for the model:
+			// x_[t+1] = x[t] + v[t] * cos(psi[t]) * dt
+			// y_[t+1] = y[t] + v[t] * sin(psi[t]) * dt
+			// psi_[t+1] = psi[t] + v[t] / Lf * delta[t] * dt
+			// v_[t+1] = v[t] + a[t] * dt
+			// cte[t+1] = f(x[t]) - y[t] + v[t] * sin(epsi[t]) * dt
+			// epsi[t+1] = psi[t] - psides[t] + v[t] * delta[t] / Lf * dt
+			fg[2 + x_start + i] = x1 - (x0 + v0 * CppAD::cos(psi0) * dt);
+			fg[2 + y_start + i] = y1 - (y0 + v0 * CppAD::sin(psi0) * dt);
+			fg[2 + psi_start + i] = psi1 - (psi0 + v0 * delta0 / Lf * dt);
+			fg[2 + v_start + i] = v1 - (v0 + a0 * dt);
 			fg[2 + cte_start + i] =
-				cte1 - ((f_0 - y_0) + (v_0 * CppAD::sin(epsi_0) * dt));
+				cte1 - ((f0 - y0) + (v0 * CppAD::sin(epsi0) * dt));
 			fg[2 + epsi_start + i] =
-				epsi1 - ((psi_0 - psid_0) + v_0 * delta_0 / Lf * dt);
+				epsi1 - ((psi0 - psides0) + v0 * delta0 / Lf * dt);
 		}
 	}
 };
