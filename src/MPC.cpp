@@ -139,17 +139,6 @@ public:
 //
 MPC::MPC() {}
 MPC::~MPC() {}
-struct Solution {
-
-	vector<double> X;
-	vector<double> Y;
-	vector<double> Psi;
-	vector<double> V;
-	vector<double> Cte;
-	vector<double> EPsi;
-	vector<double> Delta;
-	vector<double> A;
-};
 
 //vector<double> MPC::Solve(Eigen::VectorXd x0, Eigen::VectorXd coeffs) {
 Solution MPC::Solve(Eigen::VectorXd x0, Eigen::VectorXd coeffs) {
