@@ -60,7 +60,7 @@ public:
 			fg[0] += CppAD::pow(vars[v_start + i] - ref_v, 2);
 		}
 
-		
+		// Minimize the use of actuators.
 		for (int i = 0; i < N - 1; i++) {
 			fg[0] += CppAD::pow(vars[delta_start + i], 2);
 			fg[0] += 10 * CppAD::pow(vars[a_start + i], 2);
@@ -98,6 +98,7 @@ public:
 			AD<double> cte1 = vars[cte_start + i + 1];
 			AD<double> epsi1 = vars[epsi_start + i + 1];
 
+			// The state at time t.
 			AD<double> x0 = vars[x_start + i];
 			AD<double> y0 = vars[y_start + i];
 			AD<double> psi0 = vars[psi_start + i];
@@ -105,20 +106,24 @@ public:
 			AD<double> cte0 = vars[cte_start + i];
 			AD<double> epsi0 = vars[epsi_start + i];
 
-
+			// Only consider the actuation at time t.
 			AD<double> delta0 = vars[delta_start + i];
 			AD<double> a0 = vars[a_start + i];
 
 			AD<double> f0 = coeffs[0] + coeffs[1] * x0 + coeffs[2] * x0*x0 + coeffs[3] * x0*x0*x0;
 			AD<double> psides0 = CppAD::atan(coeffs[1] + 2 * coeffs[2] * x0 + 3 * coeffs[3] * x0*x0);
 
-
+			//set for x
 			fg[2 + x_start + i] = x1 - (x0 + v0 * CppAD::cos(psi0) * dt);
+			// set for y
 			fg[2 + y_start + i] = y1 - (y0 + v0 * CppAD::sin(psi0) * dt);
+			//set psi
 			fg[2 + psi_start + i] = psi1 - (psi0 + v0 * delta0 / Lf * dt);
+			//set for V
 			fg[2 + v_start + i] = v1 - (v0 + a0 * dt);
-			fg[2 + cte_start + i] =
-				cte1 - ((f0 - y0) + (v0 * CppAD::sin(epsi0) * dt));
+			//set cte
+			fg[2 + cte_start + i] =cte1 - ((f0 - y0) + (v0 * CppAD::sin(epsi0) * dt));
+			//set psi
 			fg[2 + epsi_start + i] =
 				epsi1 - ((psi0 - psides0) + v0 * delta0 / Lf * dt);
 		}
