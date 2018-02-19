@@ -66,6 +66,19 @@ namespace {
 		return result;
 	}
 
+	// In vehicle coordinates the cross-track error error cte is 
+	// the intercept at x = 0
+	double evaluateCte(Eigen::VectorXd coeffs) {
+		return polyeval(coeffs, 0);
+	}
+
+	// In vehicle coordinates the orientation error epsi is 
+	// -atan(c1 + c2*x + c3* x^2), but the car is always at x=0.
+	double evaluateEpsi(Eigen::VectorXd coeffs) {
+		return -atan(coeffs[1]);
+	}
+
+
 } //namespace
 
 int main() {
@@ -94,23 +107,21 @@ int main() {
 					double py = j[1]["y"];
 					double psi = j[1]["psi"];
 					double v = j[1]["speed"];
+
+					// Affine transformation. Translate to car coordinate system then rotate to the car's orientation. 
+					// Local coordinates take capital letters. The reference trajectory in local coordinates:
+					Eigen::MatrixXd waypoints = transformGlobalToLocal(px, py, psi, ptsx, ptsy);
+
+					//1- Set the way points to from global coordinates to local one
 					Eigen::VectorXd waypoints_x = Eigen::VectorXd(ptsx.size());
 					Eigen::VectorXd waypoints_y = Eigen::VectorXd(ptsx.size());
-
-					for (int i = 0; i < ptsx.size(); i++)
-					{
-						waypoints_x[i] = ((ptsx[i] - px)*cos(-psi) - (ptsy[i] - py)*sin(-psi));
-						waypoints_y[i] = ((ptsx[i] - px)*sin(-psi) + (ptsy[i] - py)*cos(-psi));
-					}
-					Eigen::VectorXd Ptsx = waypoints_x;
-					Eigen::VectorXd Ptsy = waypoints_y;
-
 					//Find coefficient, cte, epsi
 					auto coeffs = polyfit(waypoints_x, waypoints_y, 3);
 					double cte = polyeval(coeffs, 0);
 					double epsi = -atan(coeffs[1]);
-
-					// we assume the car at the origin
+					Eigen::VectorXd Ptsx = waypoints_x;
+					Eigen::VectorXd Ptsy = waypoints_y;
+					// state in vehicle coordinates: x,y and orientation are always zero
 					Eigen::VectorXd state(6);
 					state << 0, 0, 0, v, cte, epsi;
 
@@ -123,11 +134,22 @@ int main() {
 					mpc.a_prev = throttle_value;
 
 					json msgJson;
-					//Set steering angle
-					msgJson["steering_angle"] = - steer_value / 0.436332;
+					// mathematically positive angles are negative in the simulator, therefore we have to feed the negative steer_value.
+					// WARNING: the current simulator expects angles as a fraction of the max angle, here 25 degrees, not radians! It must be in the range [-1,1].
+					// 25 degrees in radians are 0.436332.
+					msgJson["steering_angle"] = -steer_value / 0.436332;
 					msgJson["throttle"] = throttle_value;
 
-
+					//.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
+					// the points in the simulator are connected by a Green line
+					cout << " x           " << px << endl;
+					cout << " y           " << py << endl;
+					cout << " psi         " << psi << endl;
+					cout << " v           " << v << endl;
+					cout << " cte         " << cte << endl;
+					cout << " epsi        " << epsi << endl;
+					cout << " steer_value " << steer_value << endl;
+					cout << " throttle    " << throttle_value << endl;
 
 					// Display the MPC predicted trajectory 
 					msgJson["mpc_x"] = sol.X;
