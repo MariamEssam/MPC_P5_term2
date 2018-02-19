@@ -110,8 +110,6 @@ int main() {
 
 					// Affine transformation. Translate to car coordinate system then rotate to the car's orientation. 
 					// Local coordinates take capital letters. The reference trajectory in local coordinates:
-					Eigen::MatrixXd waypoints = transformGlobalToLocal(px, py, psi, ptsx, ptsy);
-					
 
 					Eigen::VectorXd waypoints_x = Eigen::VectorXd(ptsx.size());
 					Eigen::VectorXd waypoints_y = Eigen::VectorXd(ptsx.size());
