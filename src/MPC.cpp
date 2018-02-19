@@ -72,14 +72,6 @@ public:
 			fg[0] += CppAD::pow(vars[a_start + i + 1] - vars[a_start + i], 2);
 		}
 
-		//
-		// Setup Constraints
-		// Initial constraints
-		//
-		// We add 1 to each of the starting indices due to cost being located at
-		// index 0 of `fg`.
-		// This bumps up the position of all the other values.
-		// 
 
 		fg[1 + x_start] = vars[x_start];
 		fg[1 + y_start] = vars[y_start];
@@ -114,13 +106,6 @@ public:
 			AD<double> psides0 = CppAD::atan(coeffs[1] + 2 * coeffs[2] * x0 + 3 * coeffs[3] * x0*x0);
 
 
-			// Recall the equations for the model:
-			// x_[t+1] = x[t] + v[t] * cos(psi[t]) * dt
-			// y_[t+1] = y[t] + v[t] * sin(psi[t]) * dt
-			// psi_[t+1] = psi[t] + v[t] / Lf * delta[t] * dt
-			// v_[t+1] = v[t] + a[t] * dt
-			// cte[t+1] = f(x[t]) - y[t] + v[t] * sin(epsi[t]) * dt
-			// epsi[t+1] = psi[t] - psides[t] + v[t] * delta[t] / Lf * dt
 			fg[2 + x_start + i] = x1 - (x0 + v0 * CppAD::cos(psi0) * dt);
 			fg[2 + y_start + i] = y1 - (y0 + v0 * CppAD::sin(psi0) * dt);
 			fg[2 + psi_start + i] = psi1 - (psi0 + v0 * delta0 / Lf * dt);
@@ -141,7 +126,7 @@ MPC::MPC() {}
 MPC::~MPC() {}
 
 //vector<double> MPC::Solve(Eigen::VectorXd x0, Eigen::VectorXd coeffs) {
-Solution MPC::Solve(Eigen::VectorXd x0, Eigen::VectorXd coeffs) {
+State MPC::Solve(Eigen::VectorXd x0, Eigen::VectorXd coeffs) {
 	size_t i;
 	typedef CPPAD_TESTVECTOR(double) Dvector;
 
@@ -191,8 +176,8 @@ Solution MPC::Solve(Eigen::VectorXd x0, Eigen::VectorXd coeffs) {
 
 	// constrain delta to be the previous control for the latency time
 	for (int i = delta_start; i < delta_start + latency_ind; i++) {
-		vars_lowerbound[i] = delta_prev;
-		vars_upperbound[i] = delta_prev;
+		vars_lowerbound[i] = delta_previous;
+		vars_upperbound[i] = delta_previous;
 	}
 
 	// Acceleration/decceleration upper and lower limits.
@@ -203,13 +188,11 @@ Solution MPC::Solve(Eigen::VectorXd x0, Eigen::VectorXd coeffs) {
 
 	// constrain a to be the previous control for the latency time 
 	for (int i = a_start; i < a_start + latency_ind; i++) {
-		vars_lowerbound[i] = a_prev;
-		vars_upperbound[i] = a_prev;
+		vars_lowerbound[i] = a_previous;
+		vars_upperbound[i] = a_previous;
 	}
 
-	// Lower and upper limits for constraints
-	// All of these should be 0 except the initial
-	// state indices.
+    //Constraints
 	Dvector constraints_lowerbound(n_constraints);
 	Dvector constraints_upperbound(n_constraints);
 	for (int i = 0; i < n_constraints; i++) {
@@ -231,7 +214,7 @@ Solution MPC::Solve(Eigen::VectorXd x0, Eigen::VectorXd coeffs) {
 	constraints_upperbound[epsi_start] = epsi;
 
 	// Object that computes objective and constraints
-	vector<double> previous_actuations = { delta_prev,a_prev };
+	vector<double> previous_actuations = { delta_previous,a_previous };
 	FG_eval fg_eval(coeffs, previous_actuations);
 
 	// options
@@ -253,18 +236,17 @@ Solution MPC::Solve(Eigen::VectorXd x0, Eigen::VectorXd coeffs) {
 	ok &= solution.status == CppAD::ipopt::solve_result<Dvector>::success;
 	//cout << "ok " << ok << endl;
 
-	Solution sol;
+	State state;
 	for (auto i = 0; i < N - 1; i++) {
-		cout << i << ": " << "solution.x[x_start+i]: " << solution.x[x_start + i] << "solution.x[y_start+i]: " << solution.x[y_start + i] << endl;
-		sol.X.push_back(solution.x[x_start + i]);
-		sol.Y.push_back(solution.x[y_start + i]);
-		sol.Delta.push_back(solution.x[delta_start + i]);
-		sol.A.push_back(solution.x[a_start + i]);
+		state.X.push_back(solution.x[x_start + i]);
+		state.Y.push_back(solution.x[y_start + i]);
+		state.Delta.push_back(solution.x[delta_start + i]);
+		state.A.push_back(solution.x[a_start + i]);
 	}
 
 	auto cost = solution.obj_value;
 	std::cout << "Cost " << cost << std::endl;
-
+	//return next state 
 	return sol;
 
 }

@@ -79,23 +79,6 @@ namespace {
 	}
 
 
-	Eigen::MatrixXd transformGlobalToLocal(double x, double y, double psi, const vector<double> & ptsx, const vector<double> & ptsy) {
-
-		assert(ptsx.size() == ptsy.size());
-		unsigned len = ptsx.size();
-
-		auto waypoints = Eigen::MatrixXd(2, len);
-
-		for (auto i = 0; i<len; ++i) {
-			waypoints(0, i) = cos(psi) * (ptsx[i] - x) + sin(psi) * (ptsy[i] - y);
-			waypoints(1, i) = -sin(psi) * (ptsx[i] - x) + cos(psi) * (ptsy[i] - y);
-		}
-
-		return waypoints;
-
-	}
-
-
 } //namespace
 
 int main() {
@@ -150,12 +133,12 @@ int main() {
 					state << 0, 0, 0, v, cte, epsi;
 
 					// compute the optimal trajectory          
-					Solution sol = mpc.Solve(state, coeffs);
+					State sol = mpc.Solve(state, coeffs);
 
 					double steer_value = sol.Delta.at(latency_ind);
 					double throttle_value = sol.A.at(latency_ind);
-					mpc.delta_prev = steer_value;
-					mpc.a_prev = throttle_value;
+					mpc.delta_previous = steer_value;
+					mpc.a_previous = throttle_value;
 
 					json msgJson;
 					// mathematically positive angles are negative in the simulator, therefore we have to feed the negative steer_value.
