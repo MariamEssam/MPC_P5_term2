@@ -48,8 +48,6 @@ public:
 	// `fg` is a vector containing the cost and constraints.
 	// `vars` is a vector containing the variable values (state & actuators).
 	void operator()(ADvector& fg, const ADvector& vars) {
-		// The cost is stored is the first element of `fg`.
-		// Any additions to the cost should be added to `fg[0]`.
 		fg[0] = 0;
 
 		// The part of the cost based on the reference state.
@@ -63,7 +61,7 @@ public:
 		// Minimize the use of actuators.
 		for (int i = 0; i < N - 1; i++) {
 			fg[0] += CppAD::pow(vars[delta_start + i], 2);
-			fg[0] += 10 * CppAD::pow(vars[a_start + i], 2);
+			fg[0] += 5 * CppAD::pow(vars[a_start + i], 2);
 		}
 
 		// Minimize the value gap between sequential actuations.
