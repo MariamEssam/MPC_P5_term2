@@ -91,36 +91,36 @@ public:
 		// The rest of the constraints
 		for (int i = 0; i < N - 1; i++) {
 			// The state at time t+1 .
-			AD<double> x_1 = vars[x_start + i + 1];
-			AD<double> y_1 = vars[y_start + i + 1];
-			AD<double> psi_1 = vars[psi_start + i + 1];
+			AD<double> x1 = vars[x_start + i + 1];
+			AD<double> y1 = vars[y_start + i + 1];
+			AD<double> psi1 = vars[psi_start + i + 1];
 			AD<double> v1 = vars[v_start + i + 1];
 			AD<double> cte1 = vars[cte_start + i + 1];
-			AD<double> epsi_1 = vars[epsi_start + i + 1];
+			AD<double> epsi1 = vars[epsi_start + i + 1];
 
-			AD<double> x_0 = vars[x_start + i];
-			AD<double> y_0 = vars[y_start + i];
-			AD<double> psi_0 = vars[psi_start + i];
+			AD<double> x0 = vars[x_start + i];
+			AD<double> y0 = vars[y_start + i];
+			AD<double> psi0 = vars[psi_start + i];
 			AD<double> v0 = vars[v_start + i];
 			AD<double> cte0 = vars[cte_start + i];
-			AD<double> epsi_0 = vars[epsi_start + i];
+			AD<double> epsi0 = vars[epsi_start + i];
 
 
 			AD<double> delta0 = vars[delta_start + i];
 			AD<double> a0 = vars[a_start + i];
 
-			AD<double> f0 = coeffs[0] + coeffs[1] * x_0 + coeffs[2] * x_0*x_0 + coeffs[3] * x_0*x_0*x_0;
-			AD<double> psides0 = CppAD::atan(coeffs[1] + 2 * coeffs[2] * x_0 + 3 * coeffs[3] * x_0*x_0);
+			AD<double> f0 = coeffs[0] + coeffs[1] * x0 + coeffs[2] * x0*x0 + coeffs[3] * x0*x0*x0;
+			AD<double> psides0 = CppAD::atan(coeffs[1] + 2 * coeffs[2] * x0 + 3 * coeffs[3] * x0*x0);
 
 
-			fg[2 + x_start + i] = x_1 - (x_0 + v0 * CppAD::cos(psi_0) * dt);
-			fg[2 + y_start + i] = y_1 - (y_0 + v0 * CppAD::sin(psi_0) * dt);
-			fg[2 + psi_start + i] = psi_1 - (psi_0 + v0 * delta0 / Lf * dt);
+			fg[2 + x_start + i] = x1 - (x0 + v0 * CppAD::cos(psi0) * dt);
+			fg[2 + y_start + i] = y1 - (y0 + v0 * CppAD::sin(psi0) * dt);
+			fg[2 + psi_start + i] = psi1 - (psi0 + v0 * delta0 / Lf * dt);
 			fg[2 + v_start + i] = v1 - (v0 + a0 * dt);
 			fg[2 + cte_start + i] =
-				cte1 - ((f0 - y_0) + (v0 * CppAD::sin(epsi_0) * dt));
+				cte1 - ((f0 - y0) + (v0 * CppAD::sin(epsi0) * dt));
 			fg[2 + epsi_start + i] =
-				epsi_1 - ((psi_0 - psides0) + v0 * delta0 / Lf * dt);
+				epsi1 - ((psi0 - psides0) + v0 * delta0 / Lf * dt);
 		}
 	}
 };
@@ -132,7 +132,6 @@ public:
 MPC::MPC() {}
 MPC::~MPC() {}
 
-//vector<double> MPC::Solve(Eigen::VectorXd x0, Eigen::VectorXd coeffs) {
 State MPC::Solve(Eigen::VectorXd x0, Eigen::VectorXd coeffs) {
 	size_t i;
 	typedef CPPAD_TESTVECTOR(double) Dvector;
