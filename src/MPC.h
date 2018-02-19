@@ -6,8 +6,8 @@
 
 using namespace std;
 
-const size_t N = 10;//12
-const double dt = 0.1;// 0.05
+const size_t N = 12;//10 
+const double dt = 0.05;//0.1 
 const int latency_ind = 2; //latency  in units of dt (100ms)
 
 struct State {
