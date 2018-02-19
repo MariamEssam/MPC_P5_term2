@@ -23,7 +23,7 @@ const double Lf = 2.67;
 
 // Both the reference cross track and orientation errors are 0.
 // The reference velocity is set to 40 mph.
-double ref_v = 40;
+double ref_v = 70;
 
 // The solver takes all the state variables and actuator
 // variables in a singular vector. Thus, we should to establish
@@ -55,18 +55,17 @@ class FG_eval {
 		  // Any additions to the cost should be added to `fg[0]`.
 		  fg[0] = 0;
 
-		  // The part of the cost based on the reference state.
 		  for (int i = 0; i < N; i++) {
 			  // trajectory
-			  fg[0] += CppAD::pow(vars[cte_start + i] - ref_cte, 2);
-			  fg[0] += CppAD::pow(vars[epsi_start + i] - ref_epsi, 2);
+			  fg[0] += CppAD::pow(vars[cte_start + i], 2);
+			  fg[0] += CppAD::pow(vars[epsi_start + i], 2);
 			  fg[0] += CppAD::pow(vars[v_start + i] - ref_v, 2);
 		  }
 
-		  // Minimize the use of actuators.
+
 		  for (int i = 0; i < N - 1; i++) {
-			  fg[0] += CppAD::pow(vars[delta_start + i], 2);
-			  fg[0] += 10 * CppAD::pow(vars[a_start + i], 2);
+			  fg[0] += 5* CppAD::pow(vars[delta_start + i], 2);
+			  fg[0] += 5 * CppAD::pow(vars[a_start + i], 2);
 		  }
 
 		  // Minimize the value gap between sequential actuations.
@@ -100,8 +99,6 @@ class FG_eval {
 			  AD<double> v1 = vars[v_start + i + 1];
 			  AD<double> cte1 = vars[cte_start + i + 1];
 			  AD<double> epsi1 = vars[epsi_start + i + 1];
-
-			  // The state at time t.
 			  AD<double> x0 = vars[x_start + i];
 			  AD<double> y0 = vars[y_start + i];
 			  AD<double> psi0 = vars[psi_start + i];
