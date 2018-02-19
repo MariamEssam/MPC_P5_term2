@@ -61,7 +61,7 @@ public:
 		// Minimize the use of actuators.
 		for (int i = 0; i < N - 1; i++) {
 			fg[0] += CppAD::pow(vars[delta_start + i], 2);
-			fg[0] += 5 * CppAD::pow(vars[a_start + i], 2);
+			fg[0] += CppAD::pow(vars[a_start + i], 2);
 		}
 
 		// Minimize the value gap between sequential actuations.
