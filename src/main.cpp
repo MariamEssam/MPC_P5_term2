@@ -98,9 +98,34 @@ int main() {
           * Both are in between [-1, 1].
           *
           */
+		  //1- Set the way points to from global coordinates to local one
+		  Eigen::VectorXd waypoints_x= Eigen::VectorXd(ptsx.size());
+		  Eigen::VectorXd waypoints_y = Eigen::VectorXd(ptsx.size());
+
+		  for (int i = 0; i < ptsx.size(); i++)
+		  {
+			  waypoints_x[i]=((ptsx[i] - px)*cos(-psi) - (ptsy[i] - py)*sin(-psi));
+			  waypoints_y[i]=((ptsx[i] - px)*sin(-psi) + (ptsy[i] - py)*cos(-psi));
+		  }
+		  //Find coefficient, cte, epsi
+		  auto coeffs = polyfit(waypoints_x, waypoints_y, 3);
+		  double cte = polyeval(coeffs, 0);  
+		  double epsi = -atan(coeffs[1]); 
+
           double steer_value;
           double throttle_value;
+		  Eigen::VectorXd state(6);
+		  state << 0, 0, 0, v, cte, epsi;
 
+		  // Find the optimal trajectory          
+		  auto vars = mpc.Solve(state, coeffs);
+		  steer_value = vars[0];
+		  throttle_value = vars[1];
+		  steer_value /= deg2rad(25);
+		  if (throttle_value <= -1)
+			  throttle_value = -1;
+		  else if (throttle_value >= 1)
+			  throttle_value = 1;
           json msgJson;
           // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
           // Otherwise the values will be in between [-deg2rad(25), deg2rad(25] instead of [-1, 1].
