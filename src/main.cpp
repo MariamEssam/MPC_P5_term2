@@ -116,8 +116,8 @@ int main() {
 					// compute the optimal trajectory          
 					Solution sol = mpc.Solve(state, coeffs);
 
-					double steer_value = sol.Delta.at(latency_ind);
-					double throttle_value = sol.A.at(latency_ind);
+				    steer_value = sol.Delta.at(latency_ind);
+				    throttle_value = sol.A.at(latency_ind);
 					mpc.delta_prev = steer_value;
 					mpc.a_prev = throttle_value;
 
@@ -128,16 +128,6 @@ int main() {
 					msgJson["steering_angle"] = -steer_value / 0.436332;
 					msgJson["throttle"] = throttle_value;
 
-					//.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
-					// the points in the simulator are connected by a Green line
-					cout << " x           " << px << endl;
-					cout << " y           " << py << endl;
-					cout << " psi         " << psi << endl;
-					cout << " v           " << v << endl;
-					cout << " cte         " << cte << endl;
-					cout << " epsi        " << epsi << endl;
-					cout << " steer_value " << steer_value << endl;
-					cout << " throttle    " << throttle_value << endl;
 
 					// Display the MPC predicted trajectory 
 					msgJson["mpc_x"] = sol.X;
@@ -148,8 +138,8 @@ int main() {
 					vector<double> next_y_vals;
 
 					for (unsigned i = 0; i < ptsx.size(); ++i) {
-						next_x_vals.push_back(Ptsx(i));
-						next_y_vals.push_back(Ptsy(i));
+						next_x_vals.push_back(waypoints_x(i));
+						next_y_vals.push_back(waypoints_y(i));
 					}
 					//.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
 					// the points in the simulator are connected by a Yellow line
