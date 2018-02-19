@@ -65,6 +65,37 @@ namespace {
 		auto result = Q.solve(yvals);
 		return result;
 	}
+
+	// In vehicle coordinates the cross-track error error cte is 
+	// the intercept at x = 0
+	double evaluateCte(Eigen::VectorXd coeffs) {
+		return polyeval(coeffs, 0);
+	}
+
+	// In vehicle coordinates the orientation error epsi is 
+	// -atan(c1 + c2*x + c3* x^2), but the car is always at x=0.
+	double evaluateEpsi(Eigen::VectorXd coeffs) {
+		return -atan(coeffs[1]);
+	}
+
+
+	Eigen::MatrixXd transformGlobalToLocal(double x, double y, double psi, const vector<double> & ptsx, const vector<double> & ptsy) {
+
+		assert(ptsx.size() == ptsy.size());
+		unsigned len = ptsx.size();
+
+		auto waypoints = Eigen::MatrixXd(2, len);
+
+		for (auto i = 0; i<len; ++i) {
+			waypoints(0, i) = cos(psi) * (ptsx[i] - x) + sin(psi) * (ptsy[i] - y);
+			waypoints(1, i) = -sin(psi) * (ptsx[i] - x) + cos(psi) * (ptsy[i] - y);
+		}
+
+		return waypoints;
+
+	}
+
+
 } //namespace
 
 int main() {
@@ -93,8 +124,6 @@ int main() {
 					double py = j[1]["y"];
 					double psi = j[1]["psi"];
 					double v = j[1]["speed"];
-
-					//1- Set the way points to from global coordinates to local one
 					Eigen::VectorXd waypoints_x = Eigen::VectorXd(ptsx.size());
 					Eigen::VectorXd waypoints_y = Eigen::VectorXd(ptsx.size());
 
@@ -103,21 +132,27 @@ int main() {
 						waypoints_x[i] = ((ptsx[i] - px)*cos(-psi) - (ptsy[i] - py)*sin(-psi));
 						waypoints_y[i] = ((ptsx[i] - px)*sin(-psi) + (ptsy[i] - py)*cos(-psi));
 					}
-					//Find coefficient, cte, epsi
-					auto coeffs = polyfit(waypoints_x, waypoints_y, 3);
-					double cte = polyeval(coeffs, 0);
-					double epsi = -atan(coeffs[1]);
+					Eigen::VectorXd Ptsx = waypoints_x;
+					Eigen::VectorXd Ptsy = waypoints_y;
 
-					double steer_value;
-					double throttle_value;
+					// fit a 3rd order polynomial to the waypoints
+					auto coeffs = polyfit(Ptsx, Ptsy, 3);
+
+					// get cross-track error from fit 
+					double cte = evaluateCte(coeffs);
+
+					// get orientation error from fit
+					double epsi = evaluateEpsi(coeffs);
+
+					// state in vehicle coordinates: x,y and orientation are always zero
 					Eigen::VectorXd state(6);
 					state << 0, 0, 0, v, cte, epsi;
 
 					// compute the optimal trajectory          
 					Solution sol = mpc.Solve(state, coeffs);
 
-				    steer_value = sol.Delta.at(latency_ind);
-				    throttle_value = sol.A.at(latency_ind);
+					double steer_value = sol.Delta.at(latency_ind);
+					double throttle_value = sol.A.at(latency_ind);
 					mpc.delta_prev = steer_value;
 					mpc.a_prev = throttle_value;
 
@@ -128,6 +163,16 @@ int main() {
 					msgJson["steering_angle"] = -steer_value / 0.436332;
 					msgJson["throttle"] = throttle_value;
 
+					//.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
+					// the points in the simulator are connected by a Green line
+					cout << " x           " << px << endl;
+					cout << " y           " << py << endl;
+					cout << " psi         " << psi << endl;
+					cout << " v           " << v << endl;
+					cout << " cte         " << cte << endl;
+					cout << " epsi        " << epsi << endl;
+					cout << " steer_value " << steer_value << endl;
+					cout << " throttle    " << throttle_value << endl;
 
 					// Display the MPC predicted trajectory 
 					msgJson["mpc_x"] = sol.X;
@@ -138,8 +183,8 @@ int main() {
 					vector<double> next_y_vals;
 
 					for (unsigned i = 0; i < ptsx.size(); ++i) {
-						next_x_vals.push_back(waypoints_x(i));
-						next_y_vals.push_back(waypoints_y(i));
+						next_x_vals.push_back(Ptsx(i));
+						next_y_vals.push_back(Ptsy(i));
 					}
 					//.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
 					// the points in the simulator are connected by a Yellow line
