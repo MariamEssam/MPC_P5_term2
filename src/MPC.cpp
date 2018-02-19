@@ -245,6 +245,6 @@ State MPC::Solve(Eigen::VectorXd x0, Eigen::VectorXd coeffs) {
 	auto cost = solution.obj_value;
 	std::cout << "Cost " << cost << std::endl;
 	//return next state 
-	return sol;
+	return state;
 
 }
